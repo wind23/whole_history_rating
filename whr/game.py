@@ -5,7 +5,7 @@ class UnstableRatingException(RuntimeError):
 
 class Game:
 
-    def __init__(self, black, white, winner, time_step, handicap, extras):
+    def __init__(self, black, white, winner, time_step, handicap = 0, extras = {}):
         self.day = time_step
         self.white_player = white
         self.black_player = black
