@@ -1,4 +1,5 @@
 import math
+from .game import Game
 
 class Evaluate:
 
@@ -52,8 +53,20 @@ class Evaluate:
 
     def evaluate_ave_log_likelihood_games(self, games):
         sum_ = 0.
+        games = self.list_to_games(games)
         for game in games:
             sum_ += math.log(self.evaluate_single_game(game))
         return sum_ / len(games)
         
-
+    def list_to_games(self, game_list):
+        games = []
+        for game in game_list:
+            black, white, winner, time_step = game[:4]
+            handicap = 0
+            if len(game) >= 5:
+                handicap = game[4]
+            extras = {}
+            if len(game) >= 5:
+                extras = game[5]
+            games.append(Game(black, white, winner, time_step, handicap, extras))
+        return games

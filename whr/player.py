@@ -8,6 +8,7 @@ class Player:
         self.name = name
         self.debug = config.get('debug', False)
         self.w2 = (math.sqrt(config['w2']) * math.log(10.) / 400.) ** 2.  # Convert from elo^2 to r^2
+        self.virtual_games = config['virtual_games']
         self.days = []
   
     def inspect(self):

@@ -6,6 +6,7 @@ class PlayerDay:
         self.day = day
         self.player = player
         self.is_first_day = False
+        self.virtual_games = player.virtual_games
         self.won_games = []
         self.draw_games = []
         self.lost_games = []
@@ -38,8 +39,6 @@ class PlayerDay:
                 if other_gamma == 0. or math.isnan(other_gamma) or math.isinf(other_gamma):
                     print ("other_gamma (%s) = %s" % (g.opponent(self.player).inspect(), other_gamma))
                 self.won_game_terms_cache.append([1.0, 0.0, 1.0, other_gamma])
-            if self.is_first_day:
-                self.won_game_terms_cache.append([1.0, 0.0, 1.0, 1.0])  # win against virtual player ranked with gamma = 1.0
         return self.won_game_terms_cache
 
     def draw_game_terms(self):
@@ -50,6 +49,9 @@ class PlayerDay:
                 if other_gamma == 0. or math.isnan(other_gamma) or math.isinf(other_gamma):
                     print ("other_gamma (%s) = %s" % (g.opponent(self.player).inspect(), other_gamma))
                 self.draw_game_terms_cache.append([0.5, 0.5 * other_gamma, 1.0, other_gamma])
+            if self.is_first_day:
+                for _ in range(self.virtual_games):
+                    self.draw_game_terms_cache.append([0.5, 0.5, 1.0, 1.0])  # draw with virtual player ranked with gamma = 1.0
         return self.draw_game_terms_cache
     
     def lost_game_terms(self):
@@ -60,8 +62,6 @@ class PlayerDay:
                 if other_gamma == 0. or math.isnan(other_gamma) or math.isinf(other_gamma):
                     print ("other_gamma (%s) = %s" % (g.opponent(self.player).inspect(), other_gamma))
                 self.lost_game_terms_cache.append([0.0, other_gamma, 1.0, other_gamma])
-            if self.is_first_day:
-                self.lost_game_terms_cache.append([0.0, 1.0, 1.0, 1.0])  # lose against virtual player ranked with gamma = 1.0
         return self.lost_game_terms_cache
   
     def log_likelihood_second_derivative(self):
