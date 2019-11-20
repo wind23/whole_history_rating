@@ -9,11 +9,14 @@ class Evaluate:
             ratings = list(map(lambda d: [d.day, d.elo()], player.days))
             self.ratings_by_players[name] = sorted(ratings)
 
-    def get_rating(self, name, day):
+    def get_rating(self, name, day, ignore_null_players=True):
         min_day, min_rating = None, None
         max_day, max_rating = None, None
         if not name in self.ratings_by_players.keys():
-            return 0.
+            if ignore_null_players:
+                return None
+            else:
+                return 0.
         ratings = self.ratings_by_players[name]
         for i in range(len(ratings)):
             if ratings[i][0] <= day:
@@ -34,9 +37,11 @@ class Evaluate:
             ret = ((max_day - day) * min_rating + (day - min_day) * max_rating) * 1.0 / (max_day - min_day)
         return ret
 
-    def evaluate_single_game(self, game):
-        black_rating = self.get_rating(game.black_player, game.day)
-        white_rating = self.get_rating(game.white_player, game.day)
+    def evaluate_single_game(self, game, ignore_null_players=True):
+        black_rating = self.get_rating(game.black_player, game.day, ignore_null_players=ignore_null_players)
+        white_rating = self.get_rating(game.white_player, game.day, ignore_null_players=ignore_null_players)
+        if black_rating == None or white_rating == None:
+            return None
         if game.handicap_proc:
             black_advantage = game.handicap_proc(game)
         else:
@@ -51,12 +56,16 @@ class Evaluate:
         else:
             return (white_gamma * black_adjusted_gamma) ** 0.5 / (white_gamma + black_adjusted_gamma)
 
-    def evaluate_ave_log_likelihood_games(self, games):
+    def evaluate_ave_log_likelihood_games(self, games, ignore_null_players=True):
         sum_ = 0.
         games = self.list_to_games(games)
+        game_count = 0
         for game in games:
-            sum_ += math.log(self.evaluate_single_game(game))
-        return sum_ / len(games)
+            game_likelihood = self.evaluate_single_game(game, ignore_null_players=ignore_null_players)
+            if game_likelihood != None:
+                sum_ += math.log(game_likelihood)
+                game_count += 1
+        return sum_ / game_count
         
     def list_to_games(self, game_list):
         games = []
