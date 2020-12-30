@@ -22,10 +22,10 @@ class Player:
             prior = 0
             if i < n - 1:
                 rd = self.days[i].r - self.days[i + 1].r
-                prior += (1. /(math.sqrt(2 * math.pi * sigma2[i]))) * math.exp(- (rd ** 2) / 2. * sigma2[i]) 
+                prior += (1. /(math.sqrt(2 * math.pi * sigma2[i]))) * math.exp(- (rd ** 2) / 2. / sigma2[i]) 
             if i > 0:
                 rd = self.days[i].r - self.days[i - 1].r
-                prior += (1. /(math.sqrt(2 * math.pi * sigma2[i - 1]))) * math.exp(- (rd ** 2) / 2. * sigma2[i - 1]) 
+                prior += (1. /(math.sqrt(2 * math.pi * sigma2[i - 1]))) * math.exp(- (rd ** 2) / 2. / sigma2[i - 1]) 
             if prior == 0:
                 sum_ += self.days[i].log_likelihood()
             else:
