@@ -66,19 +66,21 @@ class PlayerDay:
   
     def log_likelihood_second_derivative(self):
         sum_ = 0.0
+        gamma = self.gamma()
         for _, _, c, d in (self.won_game_terms() + self.draw_game_terms() + self.lost_game_terms()):
-            sum_ += (c * d) / ((c * self.gamma() + d) ** 2.0)
-        if math.isnan(self.gamma()) or math.isnan(sum_):
+            sum_ += (c * d) / ((c * gamma + d) ** 2.0)
+        if math.isnan(gamma) or math.isnan(sum_):
             print ("won_game_terms = %s" % self.won_game_terms())
             print ("draw_game_terms = %s" % self.draw_game_terms())
             print ("lost_game_terms = %s" % self.lost_game_terms())
-        return -1. * self.gamma() * sum_
+        return -1. * gamma * sum_
 
     def log_likelihood_derivative(self):   
         tally = 0.0
+        gamma = self.gamma()
         for _, _, c, d in (self.won_game_terms() + self.draw_game_terms() + self.lost_game_terms()):
-            tally += c / (c * self.gamma() + d)
-        return len(self.won_game_terms()) + 0.5 * len(self.draw_game_terms()) - self.gamma() * tally
+            tally += c / (c * gamma + d)
+        return len(self.won_game_terms()) + 0.5 * len(self.draw_game_terms()) - gamma * tally
 
     def log_likelihood(self):
         tally = 0.0
