@@ -1,6 +1,7 @@
 import math
 from .game import Game
 
+
 class Evaluate:
 
     def __init__(self, base):
@@ -34,39 +35,48 @@ class Evaluate:
         elif max_day <= min_day:
             ret = max_rating
         else:
-            ret = ((max_day - day) * min_rating + (day - min_day) * max_rating) * 1.0 / (max_day - min_day)
+            ret = ((max_day - day) * min_rating +
+                   (day - min_day) * max_rating) * 1.0 / (max_day - min_day)
         return ret
 
     def evaluate_single_game(self, game, ignore_null_players=True):
-        black_rating = self.get_rating(game.black_player, game.day, ignore_null_players=ignore_null_players)
-        white_rating = self.get_rating(game.white_player, game.day, ignore_null_players=ignore_null_players)
+        black_rating = self.get_rating(game.black_player,
+                                       game.day,
+                                       ignore_null_players=ignore_null_players)
+        white_rating = self.get_rating(game.white_player,
+                                       game.day,
+                                       ignore_null_players=ignore_null_players)
         if black_rating == None or white_rating == None:
             return None
         if game.handicap_proc:
             black_advantage = game.handicap_proc(game)
         else:
             black_advantage = game.handicap
-        white_gamma = 10. ** (white_rating / 400.)
-        black_adjusted_gamma = 10. ** ((black_rating + black_advantage) / 400.)
+        white_gamma = 10.**(white_rating / 400.)
+        black_adjusted_gamma = 10.**((black_rating + black_advantage) / 400.)
 
         if game.winner == 'W':
-            return white_gamma/(white_gamma + black_adjusted_gamma)
+            return white_gamma / (white_gamma + black_adjusted_gamma)
         elif game.winner == 'B':
-            return black_adjusted_gamma/(white_gamma + black_adjusted_gamma)
+            return black_adjusted_gamma / (white_gamma + black_adjusted_gamma)
         else:
-            return (white_gamma * black_adjusted_gamma) ** 0.5 / (white_gamma + black_adjusted_gamma)
+            return (white_gamma * black_adjusted_gamma)**0.5 / (
+                white_gamma + black_adjusted_gamma)
 
-    def evaluate_ave_log_likelihood_games(self, games, ignore_null_players=True):
+    def evaluate_ave_log_likelihood_games(self,
+                                          games,
+                                          ignore_null_players=True):
         sum_ = 0.
         games = self.list_to_games(games)
         game_count = 0
         for game in games:
-            game_likelihood = self.evaluate_single_game(game, ignore_null_players=ignore_null_players)
+            game_likelihood = self.evaluate_single_game(
+                game, ignore_null_players=ignore_null_players)
             if game_likelihood != None:
                 sum_ += math.log(game_likelihood)
                 game_count += 1
         return sum_ / game_count
-        
+
     def list_to_games(self, game_list):
         games = []
         for game in game_list:
@@ -77,5 +87,6 @@ class Evaluate:
             extras = {}
             if len(game) >= 5:
                 extras = game[5]
-            games.append(Game(black, white, winner, time_step, handicap, extras))
+            games.append(
+                Game(black, white, winner, time_step, handicap, extras))
         return games
