@@ -3,16 +3,17 @@ from distutils.core import setup
 setup(
     name='whr',
     packages=['whr'],
-    version='0.0.1',
+    version='0.0.1a',
     license='MIT',
     description=
     'A Python implementation of the Whole History Rating algorithm proposed by Rémi Coulom. '
     'The implementation is based on the Ruby code of GoShrine.',
+    long_description=open('README.md', 'rt').read(),
     author='Tianyi Hao',
     author_email='haotianyi0@126.com',
     url='https://github.com/wind23/whole_history_rating',
     download_url=
-    'https://github.com/wind23/whole_history_rating/archive/0.0.1.tar.gz',
+    'https://github.com/wind23/whole_history_rating/archive/0.0.1a.tar.gz',
     keywords=['WHR', 'whole history rating', 'Elo rating'],
     install_requires=[],
     classifiers=[
