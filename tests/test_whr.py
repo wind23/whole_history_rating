@@ -13,10 +13,10 @@ class WholeHistoryRatingTest:
         self.whr.create_game("shusaku", "shusai", "W", 4, 0)
         self.whr.iterate(50)
         list(map(lambda x: list(map(round, x)), [[0.9]]))
-        assert [[1, -92, 71], [2, -94, 71], [3, -95, 71], [4, -96, 72]] == list(
+        assert [[1, -92, 147], [2, -94, 147], [3, -95, 147], [4, -96, 147]] == list(
             map(lambda x: list(map(round, x)), self.whr.ratings_for_player("shusaku"))
         )
-        assert [[1, 92, 71], [2, 94, 71], [3, 95, 71], [4, 96, 72]] == list(
+        assert [[1, 92, 147], [2, 94, 147], [3, 95, 147], [4, 96, 147]] == list(
             map(lambda x: list(map(round, x)), self.whr.ratings_for_player("shusai"))
         )
 
