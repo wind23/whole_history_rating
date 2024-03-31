@@ -1,92 +1,77 @@
 import math
-from .game import Game
+from typing import Union
+import whr_core
+from .base import Base
 
 
 class Evaluate:
+    def __init__(self, base: Base):
+        """
+        Tool to evaluate the performance the trained model of Elo ratings.
 
-    def __init__(self, base):
-        self.ratings_by_players = {}
-        for name, player in base.players.items():
-            ratings = list(map(lambda d: [d.day, d.elo()], player.days))
-            self.ratings_by_players[name] = sorted(ratings)
+        Parameters
+        ----------
+        base : Base
+            Trained model of Elo ratings.
+        """
+        self.core = whr_core.Evaluate(base.core)
 
-    def get_rating(self, name, day, ignore_null_players=True):
-        min_day, min_rating = None, None
-        max_day, max_rating = None, None
-        if not name in self.ratings_by_players.keys():
-            if ignore_null_players:
-                return None
-            else:
-                return 0.
-        ratings = self.ratings_by_players[name]
-        for i in range(len(ratings)):
-            if ratings[i][0] <= day:
-                if (not min_day) or (ratings[i][0] >= min_day):
-                    min_day = ratings[i][0]
-                    min_rating = ratings[i][1]
-            if ratings[i][0] >= day:
-                if (not max_day) or (ratings[i][0] <= max_day):
-                    max_day = ratings[i][0]
-                    max_rating = ratings[i][1]
-        if not min_day:
-            ret = max_rating
-        elif not max_day:
-            ret = min_rating
-        elif max_day <= min_day:
-            ret = max_rating
-        else:
-            ret = ((max_day - day) * min_rating +
-                   (day - min_day) * max_rating) * 1.0 / (max_day - min_day)
+    def get_rating(
+        self, name: str, time_step: int, ignore_null_players: bool = True
+    ) -> Union[float, None]:
+        """
+        Get the rating of a particular player at a particular time step.
+
+        Parameters
+        ----------
+        name : str
+            Name of the player.
+
+        time_step : int
+            Time step of the player.
+
+        ignore_null_players : bool, default = True
+            Ignore players not appearing in the database.
+            If True, rating of null players will be set to None.
+            If False, rating of null players will be set to 0.
+
+        Returns
+        -------
+        float or None
+            Rating of the requested player at the requested time step.
+        """
+        ret = self.core.get_rating(name, time_step, ignore_null_players)
+        if not math.isfinite(ret):
+            return None
         return ret
 
-    def evaluate_single_game(self, game, ignore_null_players=True):
-        black_rating = self.get_rating(game.black_player,
-                                       game.day,
-                                       ignore_null_players=ignore_null_players)
-        white_rating = self.get_rating(game.white_player,
-                                       game.day,
-                                       ignore_null_players=ignore_null_players)
-        if black_rating == None or white_rating == None:
-            return None
-        if game.handicap_proc:
-            black_advantage = game.handicap_proc(game)
-        else:
-            black_advantage = game.handicap
-        white_gamma = 10.**(white_rating / 400.)
-        black_adjusted_gamma = 10.**((black_rating + black_advantage) / 400.)
+    def evaluate_ave_log_likelihood_games(
+        self, games: list, ignore_null_players: bool = True
+    ) -> float:
+        """
+        Compute the average log likelihood for the test dataset,
+        which is a list of games.
 
-        if game.winner == 'W':
-            return white_gamma / (white_gamma + black_adjusted_gamma)
-        elif game.winner == 'B':
-            return black_adjusted_gamma / (white_gamma + black_adjusted_gamma)
-        else:
-            return (white_gamma * black_adjusted_gamma)**0.5 / (
-                white_gamma + black_adjusted_gamma)
+        Parameters
+        ----------
+        games : list
+            A list of games as the test dataset.
+        Example:
+        ```
+        [('Carol', [[0, 103.91877749030998, 180.55812567296852], [60, 107.30695193277168, 183.1250043094528]]),
+         ('Alice', [[0, 78.50976252870765, 185.55230942797314], [30, 79.47183295485291, 187.12327376311526]]),
+         ('Bob', [[10, -15.262552175731392, 180.95086989932025], [60, -18.086030877782818, 183.0820052639819]]),
+         ('Dave', [[10, -176.67739359273045, 201.15282077913983], [30, -177.3187738768273, 202.03179750776144]])]
+         ```
 
-    def evaluate_ave_log_likelihood_games(self,
-                                          games,
-                                          ignore_null_players=True):
-        sum_ = 0.
-        games = self.list_to_games(games)
-        game_count = 0
-        for game in games:
-            game_likelihood = self.evaluate_single_game(
-                game, ignore_null_players=ignore_null_players)
-            if game_likelihood != None:
-                sum_ += math.log(game_likelihood)
-                game_count += 1
-        return sum_ / game_count
+        ignore_null_players : bool, optional
+            Ignore players not appearing in the database.
+            For each game, if there is a player not appearing the database,
+            it will not be counted in the average log likelihood.
 
-    def list_to_games(self, game_list):
-        games = []
-        for game in game_list:
-            black, white, winner, time_step = game[:4]
-            handicap = 0
-            if len(game) >= 5:
-                handicap = game[4]
-            extras = {}
-            if len(game) >= 5:
-                extras = game[5]
-            games.append(
-                Game(black, white, winner, time_step, handicap, extras))
-        return games
+        Returns
+        -------
+        float
+            Average log likelihood for the test dataset.
+        """
+        return self.core.evaluate_ave_log_likelihood_games(games, ignore_null_players)

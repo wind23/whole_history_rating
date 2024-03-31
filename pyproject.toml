@@ -1,0 +1,8 @@
+[build-system]
+requires = ["setuptools>=42", "pybind11>=2.10.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+before-all = "uname -a"
+test-command = "python {project}/tests/test_whr.py"
+test-skip = "*universal2:arm64"

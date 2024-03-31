@@ -1,133 +1,187 @@
-from .game import Game
-from .player import Player
-from .game import UnstableRatingException
+import whr_core
+
+
+__version__ = whr_core.__version__
 
 
 class Base:
+    def __init__(self, config: dict = None, w2: float = 300.0, virtual_games: int = 2):
+        """
+        Fundamental database for computing whole-history rating (WHR).
 
-    def __init__(self, config={}):
-        self.config = config
-        self.config.setdefault('w2', 300.0)  # elo^2
-        self.config.setdefault('virtual_games', 2)  # elo^2
-        self.games = []
-        self.players = {}
+        Parameters
+        ----------
+        config : dict, default = None
+            Config for setting the parameters for Base.
+            Example: config = {"w2": w2, "virtual_games": virtual_games}
+            If config is unset, the parameters `w2` and `virtual_games` will be used.
+
+        w2 : float, default = 300.0
+            The parameter of w^2 described in the paper of Rémi Coulom,
+            where w indicates the variability of ratings in time.
+            This parameter is ineffective when `config["w2"]` is set.
+
+        virtual_games : int, default = 2
+            Number of virtual draw games assigned to player on the first day.
+            This parameter is ineffective when `config["virtual_games"]` is set.
+
+        Example
+        -------
+        ```
+        import whr
+
+        base = whr.Base(config={'w2': 30})
+        base.create_game('Alice', 'Carol', 'D', 0) # Alice and Carol had a draw on Day 0
+        base.create_game('Bob', 'Dave', 'B', 10)   # Bob won Dave on Day 10
+        base.create_game('Dave', 'Alice', 'W', 30) # Dave lost to Alice on Day 30
+        base.create_game('Bob', 'Carol', 'W', 60)  # Bob lost to Carol on Day 60
+
+        base.iterate(50)                           # iterate for 50 rounds
+
+        print(base.ratings_for_player('Alice'))
+        print(base.ratings_for_player('Bob'))
+        print(base.ratings_for_player('Carol'))
+        print(base.ratings_for_player('Dave'))
+
+        print(base.get_ordered_ratings())
+        ```
+
+        Output:
+        ```
+        [[0, 78.50976252870765, 185.55230942797314], [30, 79.47183295485291, 187.12327376311526]]
+        [[10, -15.262552175731392, 180.95086989932025], [60, -18.086030877782818, 183.0820052639819]]
+        [[0, 103.91877749030998, 180.55812567296852], [60, 107.30695193277168, 183.1250043094528]]
+        [[10, -176.67739359273045, 201.15282077913983], [30, -177.3187738768273, 202.03179750776144]]
+        [('Carol', [[0, 103.91877749030998, 180.55812567296852], [60, 107.30695193277168, 183.1250043094528]]),
+         ('Alice', [[0, 78.50976252870765, 185.55230942797314], [30, 79.47183295485291, 187.12327376311526]]),
+         ('Bob', [[10, -15.262552175731392, 180.95086989932025], [60, -18.086030877782818, 183.0820052639819]]),
+         ('Dave', [[10, -176.67739359273045, 201.15282077913983], [30, -177.3187738768273, 202.03179750776144]])]
+        """
+        if config is not None:
+            if "w2" in config:
+                w2 = config["w2"]
+            if "virtual_games" in config:
+                virtual_games = config["virtual_games"]
+        self.core = whr_core.Base(w2, virtual_games)
 
     def print_ordered_ratings(self):
-        players = list(filter(lambda p: len(p.days) > 0,
-                              self.players.values()))
-        for p in sorted(players,
-                        key=lambda p: p.days[-1].gamma(),
-                        reverse=True):
-            if len(p.days) > 0:
-                print("%s\t%s" % (p.name, ';'.join(
-                    map(lambda pd: '%d,%.2f' % (pd.day, pd.elo()), p.days))))
+        """
+        Print the ordered ratings of all players during the whole history.
+        """
+        self.core.print_ordered_ratings()
 
-    def get_ordered_ratings(self):
-        players = list(filter(lambda p: len(p.days) > 0,
-                              self.players.values()))
-        ratings = []
-        for p in sorted(players,
-                        key=lambda p: p.days[-1].gamma(),
-                        reverse=True):
-            if len(p.days) > 0:
-                ratings.append((p.name, self.ratings_for_player(p.name)))
-        return ratings
+    def get_ordered_ratings(self) -> list:
+        """
+        Get the ordered ratings of all players during the whole history.
 
-    def log_likelihood(self):
-        score = 0.0
-        for p in self.players.values():
-            if len(p.days) > 0:
-                score += p.log_likelihood()
-        return score
+        Returns
+        -------
+        list
+            A list of [time_step, elo, uncertainty] for all players in all days.
+            The uncertainty is shown as the standard deviation of Elo.
+        Example:
+        ```
+        [('Carol', [[0, 103.91877749030998, 180.55812567296852], [60, 107.30695193277168, 183.1250043094528]]),
+         ('Alice', [[0, 78.50976252870765, 185.55230942797314], [30, 79.47183295485291, 187.12327376311526]]),
+         ('Bob', [[10, -15.262552175731392, 180.95086989932025], [60, -18.086030877782818, 183.0820052639819]]),
+         ('Dave', [[10, -176.67739359273045, 201.15282077913983], [30, -177.3187738768273, 202.03179750776144]])]
+        """
+        return self.core.get_ordered_ratings()
 
-    def player_by_name(self, name):
-        if not name in self.players.keys():
-            self.players[name] = Player(name, self.config)
-        return self.players[name]
+    def log_likelihood(self) -> float:
+        """
+        Compute the log likehihood for all games in the database.
 
-    def ratings_for_player(self, name):
-        player = self.player_by_name(name)
-        return list(
-            map(lambda d: [d.day, d.elo(), d.uncertainty * 100.], player.days))
+        Returns
+        -------
+        float
+            The computed log likelihood for all games.
+        """
+        return self.core.log_likelihood()
 
-    def setup_game(self, black, white, winner, time_step, handicap, extras={}):
-        # Avoid self-played games (no info)
-        if black == white:
-            raise ValueError("Invalid game (black player == white player)")
+    def ratings_for_player(self, name: str) -> list:
+        """
+        Get the rating for a player based on the player name.
 
-        white_player = self.player_by_name(white)
-        black_player = self.player_by_name(black)
-        game = Game(black_player, white_player, winner, time_step, handicap,
-                    extras)
-        return game
+        Parameters
+        ----------
+        name : str
+            Name of the requested player.
 
-    def create_games(self, games):
-        games.sort(key=lambda g: g[3])
-        for game in games:
-            black, white, winner, time_step = game[:4]
-            handicap = 0
-            if len(game) >= 5:
-                handicap = game[4]
-            extras = {}
-            if len(game) >= 5:
-                extras = game[5]
-            self.create_game(black, white, winner, time_step, handicap, extras)
+        Returns
+        -------
+        list
+            A list of [time_step, elo, uncertainty] for the requested player in all days.
+        Example:
+        ```
+        [[0, 103.91877749030998, 180.55812567296852], [60, 107.30695193277168, 183.1250043094528]]
+        """
+        return self.core.ratings_for_player(name)
 
-    def create_game(self,
-                    black,
-                    white,
-                    winner,
-                    time_step,
-                    handicap=0,
-                    extras={}):
-        game = self.setup_game(black, white, winner, time_step, handicap,
-                               extras)
-        return self.add_game(game)
+    def create_games(self, games: list):
+        """
+        Create a list of games, inserting the games and related players into the database.
 
-    def add_game(self, game):
-        game.white_player.add_game(game)
-        game.black_player.add_game(game)
-        if game.bpd == None:
-            print("Bad game: %d" % game.inspect())
-        self.games.append(game)
-        return game
+        Parameters
+        ----------
+        games : list
+            List of games, each element of which has the form:
+            [black, white, winner, time_step, handicap (optional)]
+        Example:
+        ```
+        [['Alice', 'Carol', 'D', 0],
+         ['Bob', 'Dave', 'B', 10],
+         ['Dave', 'Alice', 'W', 30, 10.],
+         ['Bob', 'Carol', 'W', 60, 20.]]
+        ```
+        """
+        self.core.create_games(games)
 
-    def iterate_until_converge(self, verbose=True):
-        count = 0
-        last_ratings = None
-        best_iteration = None
-        while True:
-            sorted_players = sorted(self.players.items(), key=lambda x: x[0])
-            ratings = []
-            for player in sorted_players:
-                for day in player[1].days:
-                    ratings.append(round(day.elo() * 100))
-            delta = 0
-            if count > 0:
-                for i in range(len(ratings)):
-                    delta += abs(ratings[i] - last_ratings[i])
-                if verbose:
-                    print('Iteration: %d, delta: %d' % (count, delta))
-                if delta > 0:
-                    best_iteration = count
-                if count - best_iteration >= 10:
-                    break
-                last_ratings = ratings
-            else:
-                best_iteration = count
-                last_ratings = ratings
-            self.run_one_iteration()
-            count += 1
-        for player in self.players.values():
-            player.update_uncertainty()
-        return count
+    def create_game(
+        self, black: str, white: str, winner: str, time_step: int, handicap: float = 0.0
+    ):
+        """
+        Create a game, inserting the game and related players into the database.
 
-    def iterate(self, count):
-        for _ in range(count):
-            self.run_one_iteration()
-        for player in self.players.values():
-            player.update_uncertainty()
+        Parameters
+        ----------
+        black : str
+            Name of the black player.
 
-    def run_one_iteration(self):
-        for player in self.players.values():
-            player.run_one_newton_iteration()
+        white : str
+            Name of the white player.
+
+        winner : str, {"B", "W", "D"}
+            Winner of the game: black wins, white wins, or draw.
+
+        time_step : int
+            Time step (day) of the game.
+
+        handicap : float, default = 0.0
+            The advantage of black (by Elo) of the game by default.
+        """
+        self.core.create_game(black, white, winner, time_step, handicap)
+
+    def iterate_until_converge(self, verbose: bool = True):
+        """
+        Iterate the computation until the ratings converge.
+        The ratings are considered to have converged
+        when the Elo rating of no player is updated within the percentile after 10 rounds.
+
+        Parameters
+        ----------
+        verbose : bool, default = True
+            Printing iteration information after each round.
+        """
+        self.core.iterate_until_converge(verbose)
+
+    def iterate(self, count: int):
+        """
+        Iterate the computation for a fixed number of rounds.
+
+        Parameters
+        ----------
+        count : int
+            Number of rounds.
+        """
+        self.core.iterate(count)
