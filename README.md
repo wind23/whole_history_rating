@@ -1,6 +1,19 @@
 Whole History Rating
 ====================
 
+|      CI              | status |
+|----------------------|--------|
+| conda.recipe         | [![Conda Actions Status][actions-conda-badge]][actions-conda-link] |
+| pip builds           | [![Pip Actions Status][actions-pip-badge]][actions-pip-link] |
+| cibuildwheel   | [![Wheels Actions Status][actions-wheels-badge]][actions-wheels-link] |
+
+[actions-conda-link]:      https://github.com/wind23/whole_history_rating/actions?query=workflow%3AConda
+[actions-conda-badge]:     https://github.com/wind23/whole_history_rating/workflows/Conda/badge.svg
+[actions-pip-link]:        https://github.com/wind23/whole_history_rating/actions?query=workflow%3APip
+[actions-pip-badge]:       https://github.com/wind23/whole_history_rating/workflows/Pip/badge.svg
+[actions-wheels-link]:     https://github.com/wind23/whole_history_rating/actions?query=workflow%3AWheels
+[actions-wheels-badge]:    https://github.com/wind23/whole_history_rating/workflows/Wheels/badge.svg
+
 ## Description
 
 A Python interface incorporating a C++ implementation of the [Whole History Rating](http://remi.coulom.free.fr/WHR/WHR.pdf) algorithm proposed by [Rémi Coulom](http://remi.coulom.free.fr/).
@@ -28,29 +41,42 @@ If you encounter compatibility issues while using the latest version, you can al
 
 Here is an easy example about how to use the package:
 
-    In [1]: import whr
-    ...:
-    ...: base = whr.Base(config={'w2': 30})
-    ...: base.create_game('Alice', 'Carol', 'D', 0) # Alice and Carol had a draw on Day 0
-    ...: base.create_game('Bob', 'Dave', 'B', 10)   # Bob won Dave on Day 10
-    ...: base.create_game('Dave', 'Alice', 'W', 30) # Dave lost to Alice on Day 30
-    ...: base.create_game('Bob', 'Carol', 'W', 60)  # Bob lost to Carol on Day 60
-    ...:
-    ...: base.iterate(50)                           # iterate for 50 rounds
+	In [1]: import whr
+	   ...: import math
+	   ...:
+	   ...: base = whr.Base(config={"w2": 30})
+	   ...: base.create_game("Alice", "Carol", "D", 0)  # Alice and Carol had a draw on Day 0
+	   ...: base.create_game("Bob", "Dave", "B", 10)  # Bob won Dave on Day 10
+	   ...: base.create_game("Dave", "Alice", "W", 30)  # Dave lost to Alice on Day 30
+	   ...: base.create_game("Bob", "Carol", "W", 60)  # Bob lost to Carol on Day 60
+	   ...:
+	   ...: base.iterate(50)  # iterate for 50 rounds
 
-    In [2]: print(base.ratings_for_player('Alice'))
-    ...: print(base.ratings_for_player('Bob'))
-    ...: print(base.ratings_for_player('Carol'))
-    ...: print(base.ratings_for_player('Dave'))
-    [[0, 78.50976252870765, 114.0890917675107], [30, 79.47183295485291, 116.02912272478814]]
-    [[10, -15.262552175731381, 108.50075126605397], [60, -18.08603087778281, 111.07152016073245]]
-    [[0, 103.9187774903099, 108.03027219107216], [60, 107.30695193277161, 111.12369929419124]]
-    [[10, -176.6773935927304, 134.07989121465133], [30, -177.31877387682724, 135.25422816732765]]
+	In [2]: print(base.ratings_for_player("Alice"))
+	   ...: print(base.ratings_for_player("Bob"))
+	   ...: print(base.ratings_for_player("Carol"))
+	   ...: print(base.ratings_for_player("Dave"))
+	[[0, 78.50976252870765, 185.55230942797314], [30, 79.47183295485291, 187.12327376311526]]
+	[[10, -15.262552175731392, 180.95086989932025], [60, -18.086030877782818, 183.0820052639819]]
+	[[0, 103.91877749030998, 180.55812567296852], [60, 107.30695193277168, 183.1250043094528]]
+	[[10, -176.67739359273045, 201.15282077913983], [30, -177.3187738768273, 202.03179750776144]]
 
-    In [3]: print(base.get_ordered_ratings())
-    [('Carol', [[0, 103.9187774903099, 108.03027219107216], [60, 107.30695193277161, 111.12369929419124]]), ('Alice', [[0, 78.50976252870765, 114.0890917675107], [30, 79.47183295485291, 116.02912272478814]]), ('Bob', [[10, -15.262552175731381, 108.50075126605397], [60, -18.08603087778281, 111.07152016073245]]), ('Dave', [[10, -176.6773935927304, 134.07989121465133], [30, -177.31877387682724, 135.25422816732765]])]
+	In [3]: print(base.get_ordered_ratings())
+	[('Carol', [[0, 103.91877749030998, 180.55812567296852], [60, 107.30695193277168, 183.1250043094528]]), ('Alice', [[0, 78.50976252870765, 185.55230942797314], [30, 79.47183295485291, 187.12327376311526]]), ('Bob', [[10, -15.262552175731392, 180.95086989932025], [60, -18.086030877782818, 183.0820052639819]]), ('Dave', [[10, -176.67739359273045, 201.15282077913983], [30, -177.3187738768273, 202.03179750776144]])]
 
-To learn more about the detailed usage, please refer to the docstrings of `whr.Base` and `whr.Evaluate`.
+	In [4]: evaluate = whr.Evaluate(base)
+	   ...: test_games = [
+	   ...:     ["Alice", "Bob", "B", 0],
+	   ...:     ["Bob", "Carol", "W", 20],
+	   ...:     ["Dave", "Bob", "D", 50],
+	   ...:     ["Alice", "Dave", "B", 70],
+	   ...: ]
+	   ...: log_likelihood = evaluate.evaluate_ave_log_likelihood_games(test_games)
+
+	In [5]: print("Likelihood: ", math.exp(log_likelihood))
+	Likelihood:  0.6274093351974668
+
+To learn more about the detailed usage, please refer to the docstrings of [`whr.Base`](https://github.com/wind23/whole_history_rating/blob/master/whr/base.py) and [`whr.Evaluate`](https://github.com/wind23/whole_history_rating/blob/master/whr/evaluate.py).
 
 ## References
 

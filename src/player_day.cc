@@ -9,7 +9,7 @@ PlayerDay::PlayerDay(const std::shared_ptr<Player> player, int time_step)
     : player_(player), time_step_(time_step), is_first_day_(false),
       won_game_terms_cache_initialized_(false),
       draw_game_terms_cache_initialized_(false),
-      lost_game_terms_cache_initialized_(false), r_(0.) {}
+      lost_game_terms_cache_initialized_(false), r_(0.), uncertainty_(0.) {}
 
 void PlayerDay::set_gamma(double gamma) { r_ = std::log(gamma); }
 

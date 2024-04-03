@@ -20,10 +20,23 @@ class WholeHistoryRatingTest:
             map(lambda x: list(map(round, x)), self.whr.ratings_for_player("shusai"))
         )
 
+    def test_evaluate(self):
+        test_games = [
+            ["shusaku", "shusai", "B", 1],
+            ["shusaku", "shusai", "W", 2],
+            ["shusaku", "shusai", "W", 3, 0],
+            ["shusaku", "shusai", "W", 4, 0],
+            ["shusaku", "shusai", "W", 4, 0],
+        ]
+        evaluate = whr.Evaluate(self.whr)
+        test_log_likelihood = evaluate.evaluate_ave_log_likelihood_games(test_games)
+        assert round(test_log_likelihood * 100000) == -50215
+
 
 def test_whr_class():
     whrt = WholeHistoryRatingTest()
     whrt.test_output()
+    whrt.test_evaluate()
 
 
 if __name__ == "__main__":

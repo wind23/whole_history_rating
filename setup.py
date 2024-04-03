@@ -3,7 +3,7 @@ from setuptools import setup, glob
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 
 
-__version__ = "2.0.2"
+__version__ = "2.0.3"
 
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text(encoding="utf-8")
