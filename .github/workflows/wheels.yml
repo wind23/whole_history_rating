@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-13]
+        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
 
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +47,7 @@ jobs:
         env:
           CIBW_ARCHS_MACOS: auto universal2
           SYSTEM_VERSION_COMPAT: 0
+          CIBW_SKIP: pp37-* pp38-* pp39-*
 
       - name: Verify clean directory
         run: git diff --exit-code
