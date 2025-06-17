@@ -33,6 +33,14 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
+      - name: Temporarily rename Git's link.exe
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          if exist "C:\Program Files\Git\usr\bin\link.exe" (
+            ren "C:\Program Files\Git\usr\bin\link.exe" "link.exe.bak"
+          )
+
       - name: Get conda
         uses: conda-incubator/setup-miniconda@v3.2.0
         with:
@@ -44,6 +52,17 @@ jobs:
 
       - name: Build
         run: conda build conda.recipe
+        env:
+          DISTUTILS_USE_SDK: 1
+          MSSdk: 1
+
+      - name: Restore Git's link.exe
+        if: runner.os == 'Windows' && always()
+        shell: cmd
+        run: |
+          if exist "C:\Program Files\Git\usr\bin\link.exe.bak" (
+            ren "C:\Program Files\Git\usr\bin\link.exe.bak" "link.exe"
+          )
 
       - name: Install
         run: conda install -c ${CONDA_PREFIX}/conda-bld/ whr
