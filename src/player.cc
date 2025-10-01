@@ -194,25 +194,41 @@ void Player::update_uncertainty() {
 }
 
 void Player::add_game(std::shared_ptr<Game> game) {
-  size_t n = days_.size();
-  if (n == 0 || days_[n - 1]->get_time_step() != game->get_time_step()) {
-    auto new_pday =
-        std::make_shared<PlayerDay>(shared_from_this(), game->get_time_step());
-    if (n == 0) {
-      new_pday->set_is_first_day(true);
-      new_pday->set_gamma(1.);
-    } else {
-      new_pday->set_gamma(days_[n - 1]->gamma());
-    }
-    days_.push_back(new_pday);
-  }
-  n = days_.size();
-  if (game->get_white_player() == shared_from_this()) {
-    game->set_wpd(days_[n - 1]);
+  const int t = game->get_time_step();
+  auto it = std::lower_bound(
+      days_.begin(), days_.end(), t,
+      [](const std::shared_ptr<PlayerDay> &d, int tt) {
+        return d->get_time_step() < tt;
+      });
+
+  std::shared_ptr<PlayerDay> pday;
+  if (it != days_.end() && (*it)->get_time_step() == t) {
+    pday = *it;
   } else {
-    game->set_bpd(days_[n - 1]);
+    pday = std::make_shared<PlayerDay>(shared_from_this(), t);
+    if (it == days_.begin()) {
+      pday->set_gamma(1.);
+    } else {
+      pday->set_gamma((*(it - 1))->gamma());
+    }
+    it = days_.insert(it, pday);
+    if (it == days_.begin()) {
+      (*it)->set_is_first_day(true);
+      (*it)->clear_game_terms_cache();
+      if (days_.size() > 1) {
+        (*(it + 1))->set_is_first_day(false);
+        (*(it + 1))->clear_game_terms_cache();
+      }
+    } else {
+      (*it)->set_is_first_day(false);
+    }
   }
-  days_[n - 1]->add_game(game);
+  if (game->get_white_player() == shared_from_this()) {
+    game->set_wpd(pday);
+  } else {
+    game->set_bpd(pday);
+  }
+  pday->add_game(game);
 }
 
 } // namespace whr

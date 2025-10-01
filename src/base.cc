@@ -179,8 +179,10 @@ int Base::iterate_until_coverge(bool verbose) {
     run_one_iteration();
     count++;
   }
-  for (auto &player : players_) {
-    player.second->update_uncertainty();
+  std::vector<std::string> sorted_player_names = players_order_;
+  std::sort(sorted_player_names.begin(), sorted_player_names.end());
+  for (const std::string &name : sorted_player_names) {
+    players_[name]->update_uncertainty();
   }
   return count;
 }
@@ -189,13 +191,17 @@ void Base::iterate(int count) {
   for (int i = 0; i < count; i++) {
     run_one_iteration();
   }
-  for (auto &player : players_) {
-    player.second->update_uncertainty();
+  std::vector<std::string> sorted_player_names = players_order_;
+  std::sort(sorted_player_names.begin(), sorted_player_names.end());
+  for (const std::string &name : sorted_player_names) {
+    players_[name]->update_uncertainty();
   }
 }
 
 void Base::run_one_iteration() {
-  for (const std::string &name : players_order_) {
+  std::vector<std::string> sorted_players = players_order_;
+  std::sort(sorted_players.begin(), sorted_players.end());
+  for (const std::string &name : sorted_players) {
     players_[name]->run_one_newton_iteration();
   }
 }

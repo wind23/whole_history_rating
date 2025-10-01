@@ -32,11 +32,33 @@ class WholeHistoryRatingTest:
         test_log_likelihood = evaluate.evaluate_ave_log_likelihood_games(test_games)
         assert round(test_log_likelihood * 100000) == -50215
 
+    def test_game_order_independence(self):
+        whr1 = whr.Base()
+        whr1.create_game("alice", "bob", "W", 1, 0)
+        whr1.create_game("alice", "bob", "B", 2, 0)
+        whr1.create_game("alice", "bob", "W", 3, 0)
+        whr1.iterate(50)
+
+        whr2 = whr.Base()
+        whr2.create_game("alice", "bob", "W", 3, 0)
+        whr2.create_game("alice", "bob", "B", 2, 0)
+        whr2.create_game("alice", "bob", "W", 1, 0)
+        whr2.iterate(50)
+
+        ratings1_alice = sorted(whr1.ratings_for_player("alice"), key=lambda x: x[0])
+        ratings2_alice = sorted(whr2.ratings_for_player("alice"), key=lambda x: x[0])
+        ratings1_bob = sorted(whr1.ratings_for_player("bob"), key=lambda x: x[0])
+        ratings2_bob = sorted(whr2.ratings_for_player("bob"), key=lambda x: x[0])
+
+        assert ratings1_alice == ratings2_alice
+        assert ratings1_bob == ratings2_bob
+
 
 def test_whr_class():
     whrt = WholeHistoryRatingTest()
     whrt.test_output()
     whrt.test_evaluate()
+    whrt.test_game_order_independence()
 
 
 if __name__ == "__main__":
