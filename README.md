@@ -78,6 +78,66 @@ Here is an easy example about how to use the package:
 
 To learn more about the detailed usage, please refer to the docstrings of [`whr.Base`](https://github.com/wind23/whole_history_rating/blob/master/whr/base.py) and [`whr.Evaluate`](https://github.com/wind23/whole_history_rating/blob/master/whr/evaluate.py).
 
+## Running Tests
+
+To run the test suite:
+
+```bash
+python tests/test_whr.py
+```
+
+Or using pytest:
+
+```bash
+pytest tests/test_whr.py -v
+```
+
+## API Reference
+
+### whr.Base
+
+Main class for computing Whole History Ratings.
+
+**Constructor:**
+- `whr.Base(w2=300, virtual_games=2)`: Initialize the rating system
+  - `w2`: Variance parameter controlling rating volatility over time
+  - `virtual_games`: Number of virtual draws added to first day for regularization
+
+**Methods:**
+- `create_game(black, white, winner, time_step, handicap=0)`: Add a single game
+  - `black`: Name of the black player
+  - `white`: Name of the white player
+  - `winner`: "B" (black wins), "W" (white wins), or "D" (draw)
+  - `time_step`: Integer representing the time period (e.g., day number)
+  - `handicap`: Optional handicap value (default 0)
+
+- `create_games(games)`: Add multiple games at once
+  - `games`: List of game records, each in format `[black, white, winner, time_step, handicap]`
+
+- `iterate(count)`: Run Newton's method iterations
+  - `count`: Number of iterations to perform (typically 50-100)
+
+- `iterate_until_converge(verbose=True)`: Iterate until convergence
+  - Returns the number of iterations performed
+
+- `ratings_for_player(name)`: Get rating history for a player
+  - Returns list of `[time_step, rating, uncertainty]` for each time period
+
+- `get_ordered_ratings()`: Get all players' ratings ordered by final rating
+
+- `log_likelihood()`: Get the log-likelihood of the current model
+
+### whr.Evaluate
+
+Class for evaluating prediction accuracy on test data.
+
+**Constructor:**
+- `whr.Evaluate(base)`: Initialize evaluator with a fitted WHR model
+
+**Methods:**
+- `get_rating(name, time_step, ignore_null_players=True)`: Get a player's rating at a specific time
+- `evaluate_ave_log_likelihood_games(games, ignore_null_players=True)`: Compute average log-likelihood on test games
+
 ## References
 
 Rémi Coulom. [Whole-history rating: A Bayesian rating system for players of time-varying strength](https://www.remi-coulom.fr/WHR/WHR.pdf). In _International Conference on Computers and Games_. 2008.
