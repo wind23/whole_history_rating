@@ -27,7 +27,7 @@ jobs:
         shell: "bash -l {0}"
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Setup MSVC
         if: runner.os == 'Windows'
