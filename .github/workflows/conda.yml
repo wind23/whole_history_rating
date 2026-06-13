@@ -65,7 +65,7 @@ jobs:
           )
 
       - name: Install
-        run: conda install -c ${CONDA_PREFIX}/conda-bld/ whr
+        run: conda install -c ${CONDA}/conda-bld/ whr
 
       - name: Test
         run: python tests/test_whr.py
