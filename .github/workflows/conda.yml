@@ -51,7 +51,7 @@ jobs:
         run: conda install -n base conda-build conda-verify
 
       - name: Build
-        run: conda build conda.recipe
+        run: conda build --python ${{ matrix.python-version }} conda.recipe
         env:
           DISTUTILS_USE_SDK: 1
           MSSdk: 1
