@@ -48,10 +48,10 @@ jobs:
           channels: conda-forge
 
       - name: Prepare
-        run: conda install conda-build conda-verify
+        run: conda install -n base conda-build conda-verify
 
       - name: Build
-        run: conda build conda.recipe
+        run: conda build --python ${{ matrix.python-version }} conda.recipe
         env:
           DISTUTILS_USE_SDK: 1
           MSSdk: 1
@@ -65,7 +65,7 @@ jobs:
           )
 
       - name: Install
-        run: conda install -c ${CONDA_PREFIX}/conda-bld/ whr
+        run: conda install -c ${CONDA}/conda-bld/ whr
 
       - name: Test
         run: python tests/test_whr.py
