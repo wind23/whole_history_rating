@@ -16,6 +16,7 @@ requirements:
   host:
     - python
     - pip
+    - setuptools >=42
     - pybind11 >=2.10.0
 
   run:
