@@ -114,6 +114,13 @@ If the CSV structure contains minor anomalies, the parser emits a `UserWarning` 
 - **Float Time Steps**: If the `time_step` contains decimals, it is safely rounded to the nearest integer.
 - **Empty & Comment Lines**: Empty lines and clean space rows are skipped silently.
 
+#### Handicap & First-Move Advantage (Go vs. Chess)
+WHR was originally designed for Go (围棋), where Black plays first and any handicap/komi is applied to Black's rating. Therefore, the library API is designed with `[black, white, ...]` parameter order.
+
+If you are using this library for games where White plays first (e.g., Chess), you can handle the first-move advantage easily:
+- **Approach A (Recommended - Negative Handicap)**: Keep passing the White player as the `white` argument, the Black player as the `black` argument, and pass a **negative** handicap value to represent White's first-move advantage. E.g., `handicap = -35.0` (which mathematically increases White's win probability by adding 35.0 Elo to White).
+- **Approach B (Logical Mapping)**: Map the first-move player (White) to the `black` parameter, and the second-move player (Black) to the `white` parameter. If White wins, set the winner to `"B"`.
+
 ---
 
 ## API Reference
