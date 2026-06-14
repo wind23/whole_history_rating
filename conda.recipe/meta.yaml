@@ -1,6 +1,6 @@
 package:
   name: whr
-  version: 2.0.4
+  version: 2.2.0
 
 source:
   path: ..
@@ -16,6 +16,7 @@ requirements:
   host:
     - python
     - pip
+    - setuptools >=42
     - pybind11 >=2.10.0
 
   run:
@@ -27,8 +28,10 @@ test:
     - whr
   source_files:
     - tests
+  requires:
+    - pytest
   commands:
-    - python tests/test_whr.py
+    - python -m pytest tests/
 
 about:
   summary: A Python interface incorporating a C++ implementation of the Whole History Rating algorithm

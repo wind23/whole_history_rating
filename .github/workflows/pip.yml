@@ -16,8 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [windows-latest, macos-15-intel, macos-14, ubuntu-latest]
-        python-version: ["3.9", "3.12"]
+        platform: [windows-latest, macos-15-intel, macos-latest, ubuntu-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
 
     runs-on: ${{ matrix.platform }}
 
@@ -34,8 +34,11 @@ jobs:
       - name: Build and install
         run: pip install --verbose .
 
+      - name: Install test dependencies
+        run: pip install pytest
+
       - name: Test
-        run: python tests/test_whr.py
+        run: python -m pytest tests/
 
   build-mingw64:
     runs-on: windows-latest
@@ -66,5 +69,8 @@ jobs:
         # error: --plat-name must be one of ('win32', 'win-amd64', 'win-arm32', 'win-arm64')
         run: pip install --no-build-isolation .
 
+      - name: Install test dependencies
+        run: pip install pytest
+
       - name: Test
-        run: python tests/test_whr.py
+        run: python -m pytest tests/

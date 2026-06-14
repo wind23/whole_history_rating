@@ -16,8 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, windows-2022, macos-14]
-        python-version: ["3.9", "3.12"]
+        platform: [ubuntu-latest, windows-latest, macos-15-intel, macos-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
 
     runs-on: ${{ matrix.platform }}
 
@@ -67,5 +67,8 @@ jobs:
       - name: Install
         run: conda install -c ${CONDA}/conda-bld/ whr
 
+      - name: Install test dependencies
+        run: conda install -y pytest
+
       - name: Test
-        run: python tests/test_whr.py
+        run: python -m pytest tests/

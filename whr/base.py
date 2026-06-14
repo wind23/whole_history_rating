@@ -173,7 +173,7 @@ class Base:
         verbose : bool, default = True
             Printing iteration information after each round.
         """
-        self.core.iterate_until_converge(verbose)
+        return self.core.iterate_until_converge(verbose)
 
     def iterate(self, count: int):
         """
@@ -185,3 +185,192 @@ class Base:
             Number of rounds.
         """
         self.core.iterate(count)
+
+    def load_csv(self, filepath_or_buffer):
+        """
+        Load games from a CSV file or file-like buffer.
+
+        Parameters
+        ----------
+        filepath_or_buffer : str, Path, or file-like object
+            The path to the CSV file or a file-like buffer containing CSV data.
+        """
+        import csv
+        import io
+        import warnings
+
+        # Open file if path-like is provided
+        close_file = False
+        if isinstance(filepath_or_buffer, str):
+            f = open(filepath_or_buffer, "r", encoding="utf-8", newline="")
+            close_file = True
+        elif hasattr(filepath_or_buffer, "read"):
+            f = filepath_or_buffer
+        else:
+            f = open(filepath_or_buffer, "r", encoding="utf-8", newline="")
+            close_file = True
+
+        try:
+            reader = csv.reader(f)
+            rows = []
+            for r in reader:
+                # Skip empty rows or header-less blanks
+                if not r or all(cell.strip() == "" for cell in r):
+                    continue
+                rows.append([cell.strip() for cell in r])
+
+            if not rows:
+                warnings.warn("The CSV file is empty.", UserWarning)
+                return
+
+            header_row = rows[0]
+
+            black_aliases = {"black", "black_player", "player_black", "p1", "player1", "black player"}
+            white_aliases = {"white", "white_player", "player_white", "p2", "player2", "white player"}
+            winner_aliases = {"winner", "result", "outcome", "win", "winner_player", "victor"}
+            time_step_aliases = {"time_step", "time", "step", "day", "date", "round"}
+            handicap_aliases = {"handicap", "advantage", "komi"}
+
+            black_idx = None
+            white_idx = None
+            winner_idx = None
+            time_step_idx = None
+            handicap_idx = None
+
+            # Check if first row is a header
+            is_header = False
+            for idx, col in enumerate(header_row):
+                col_lower = col.lower()
+                if col_lower in black_aliases:
+                    black_idx = idx
+                    is_header = True
+                elif col_lower in white_aliases:
+                    white_idx = idx
+                    is_header = True
+                elif col_lower in winner_aliases:
+                    winner_idx = idx
+                    is_header = True
+                elif col_lower in time_step_aliases:
+                    time_step_idx = idx
+                    is_header = True
+                elif col_lower in handicap_aliases:
+                    handicap_idx = idx
+                    is_header = True
+
+            if is_header:
+                data_rows = rows[1:]
+                missing_headers = []
+                if black_idx is None: missing_headers.append("black")
+                if white_idx is None: missing_headers.append("white")
+                if winner_idx is None: missing_headers.append("winner")
+                if time_step_idx is None: missing_headers.append("time_step")
+
+                if missing_headers:
+                    warnings.warn(
+                        f"Missing headers: {', '.join(missing_headers)}. Attempting to match by positional fallback.",
+                        UserWarning
+                    )
+                    if black_idx is None and len(header_row) > 0: black_idx = 0
+                    if white_idx is None and len(header_row) > 1: white_idx = 1
+                    if winner_idx is None and len(header_row) > 2: winner_idx = 2
+                    if time_step_idx is None and len(header_row) > 3: time_step_idx = 3
+                    if handicap_idx is None and len(header_row) > 4: handicap_idx = 4
+            else:
+                warnings.warn(
+                    "No CSV header detected. Falling back to default column order: "
+                    "black_player, white_player, winner, time_step, handicap.",
+                    UserWarning
+                )
+                data_rows = rows
+                black_idx = 0 if len(header_row) > 0 else None
+                white_idx = 1 if len(header_row) > 1 else None
+                winner_idx = 2 if len(header_row) > 2 else None
+                time_step_idx = 3 if len(header_row) > 3 else None
+                handicap_idx = 4 if len(header_row) > 4 else None
+
+            # Process games
+            for row_num, row in enumerate(data_rows, start=2 if is_header else 1):
+                def get_val(idx, default=None):
+                    if idx is not None and idx < len(row):
+                        return row[idx]
+                    return default
+
+                black_val = get_val(black_idx)
+                white_val = get_val(white_idx)
+                winner_raw = get_val(winner_idx)
+                time_step_raw = get_val(time_step_idx)
+                handicap_raw = get_val(handicap_idx)
+
+                # Skip and warn on empty/missing player names
+                if not black_val or not white_val:
+                    warnings.warn(
+                        f"Row {row_num}: Missing player name(s). Skipping game.",
+                        UserWarning
+                    )
+                    continue
+
+                if black_val == white_val:
+                    warnings.warn(
+                        f"Row {row_num}: Self-play detected ({black_val} vs {white_val}). Skipping game.",
+                        UserWarning
+                    )
+                    continue
+
+                # Winner normalization
+                winner = "D"
+                if winner_raw is not None and winner_raw.strip() != "":
+                    winner_clean = winner_raw.strip().lower()
+                    if winner_clean in {"b", "black", "1-0", "1", "black win"}:
+                        winner = "B"
+                    elif winner_clean in {"w", "white", "0-1", "0", "white win"}:
+                        winner = "W"
+                    elif winner_clean in {"d", "draw", "1/2-1/2", "0.5"}:
+                        winner = "D"
+                    else:
+                        warnings.warn(
+                            f"Row {row_num}: Invalid winner '{winner_raw}'. Defaulting to Draw ('D').",
+                            UserWarning
+                        )
+                        winner = "D"
+                else:
+                    warnings.warn(
+                        f"Row {row_num}: Missing winner. Defaulting to Draw ('D').",
+                        UserWarning
+                    )
+                    winner = "D"
+
+                # Time step parsing
+                time_step = 0
+                if time_step_raw is not None and time_step_raw.strip() != "":
+                    try:
+                        time_step = int(round(float(time_step_raw)))
+                    except ValueError:
+                        warnings.warn(
+                            f"Row {row_num}: Invalid time_step '{time_step_raw}'. Defaulting to 0.",
+                            UserWarning
+                        )
+                        time_step = 0
+                else:
+                    warnings.warn(
+                        f"Row {row_num}: Missing time_step. Defaulting to 0.",
+                        UserWarning
+                    )
+                    time_step = 0
+
+                # Handicap parsing
+                handicap = 0.0
+                if handicap_raw is not None and handicap_raw.strip() != "":
+                    try:
+                        handicap = float(handicap_raw)
+                    except ValueError:
+                        warnings.warn(
+                            f"Row {row_num}: Invalid handicap '{handicap_raw}'. Defaulting to 0.0.",
+                            UserWarning
+                        )
+                        handicap = 0.0
+
+                self.create_game(black_val, white_val, winner, time_step, handicap)
+
+        finally:
+            if close_file:
+                f.close()
