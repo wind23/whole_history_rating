@@ -1,142 +1,165 @@
-Whole History Rating
-====================
+# Whole History Rating (WHR)
 
-|      CI              | status |
-|----------------------|--------|
-| conda.recipe         | [![Conda Actions Status][actions-conda-badge]][actions-conda-link] |
-| pip builds           | [![Pip Actions Status][actions-pip-badge]][actions-pip-link] |
-| cibuildwheel   | [![Wheels Actions Status][actions-wheels-badge]][actions-wheels-link] |
+[![Conda Actions Status](https://github.com/wind23/whole_history_rating/workflows/Conda/badge.svg)](https://github.com/wind23/whole_history_rating/actions?query=workflow%3AConda)
+[![Pip Actions Status](https://github.com/wind23/whole_history_rating/workflows/Pip/badge.svg)](https://github.com/wind23/whole_history_rating/actions?query=workflow%3APip)
+[![Wheels Actions Status](https://github.com/wind23/whole_history_rating/workflows/Wheels/badge.svg)](https://github.com/wind23/whole_history_rating/actions?query=workflow%3AWheels)
 
-[actions-conda-link]:      https://github.com/wind23/whole_history_rating/actions?query=workflow%3AConda
-[actions-conda-badge]:     https://github.com/wind23/whole_history_rating/workflows/Conda/badge.svg
-[actions-pip-link]:        https://github.com/wind23/whole_history_rating/actions?query=workflow%3APip
-[actions-pip-badge]:       https://github.com/wind23/whole_history_rating/workflows/Pip/badge.svg
-[actions-wheels-link]:     https://github.com/wind23/whole_history_rating/actions?query=workflow%3AWheels
-[actions-wheels-badge]:    https://github.com/wind23/whole_history_rating/workflows/Wheels/badge.svg
+A Python interface incorporating a highly optimized C++ implementation of the [Whole History Rating (WHR)](http://remi.coulom.free.fr/WHR/WHR.pdf) algorithm proposed by [Rémi Coulom](http://remi.coulom.free.fr/). WHR computes time-varying Elo ratings for players of games (e.g., Chess, Go) by optimizing the log-likelihood of all game results across history simultaneously.
 
-## Description
+This C++ implementation is based on the [Ruby implementation](https://github.com/goshrine/whole_history_rating) by [GoShrine](http://goshrine.com).
 
-A Python interface incorporating a C++ implementation of the [Whole History Rating](http://remi.coulom.free.fr/WHR/WHR.pdf) algorithm proposed by [Rémi Coulom](http://remi.coulom.free.fr/).
+---
 
-The implementation is based on the [Ruby code](https://github.com/goshrine/whole_history_rating) of [GoShrine](http://goshrine.com).
+## Features
+
+- **Blazing Fast**: The core algorithm is implemented in C++ (via `pybind11`), allowing it to scale to tens of thousands of games.
+- **Tolerant CSV Loading**: Built-in support to ingest games from CSV files with smart header alias matching, winner normalization, and graceful handling of missing or malformed fields.
+- **Robust Evaluation**: Standardized validation metrics including average log-likelihood computation.
+- **Highly Configurable**: Custom rating volatility parameter ($w^2$) and virtual game regularization.
+
+---
 
 ## Installation
 
-To install it from PyPI:
+### From PyPI
+```bash
+pip install whr
+```
 
-    pip install whr
+### From Source
+```bash
+git clone https://github.com/wind23/whole_history_rating.git
+cd whole_history_rating
+pip install .
+```
 
-To install it from source code:
+> **Note**: Building from source requires a C++ compiler supporting C++11 (GCC, Clang, MSVC) and the `pybind11` package.
 
-    git clone git@github.com:wind23/whole_history_rating.git
-    pip install ./whole_history_rating
-
-To build this package from the source code, you will need a recent version of Python 3 installed, along with `setuptools>=42` and `pybind11>=2.10.0`. Furthermore, depending on your operating system, you may also require the installation of the appropriate C++ build environment. If you are uncertain about the required dependencies, you can begin by attempting `pip install` and follow the instructions provided by your system to install the necessary components.
-
-If you encounter compatibility issues while using the latest version, you can also try the older version implemented purely in Python:
-
-    pip install whr==1.0.1
+---
 
 ## Usage
 
-Here is an easy example about how to use the package:
+### 1. Basic API Usage
 
-	In [1]: import whr
-	   ...: import math
-	   ...:
-	   ...: base = whr.Base(config={"w2": 30})
-	   ...: base.create_game("Alice", "Carol", "D", 0)  # Alice and Carol had a draw on Day 0
-	   ...: base.create_game("Bob", "Dave", "B", 10)  # Bob won Dave on Day 10
-	   ...: base.create_game("Dave", "Alice", "W", 30)  # Dave lost to Alice on Day 30
-	   ...: base.create_game("Bob", "Carol", "W", 60)  # Bob lost to Carol on Day 60
-	   ...:
-	   ...: base.iterate(50)  # iterate for 50 rounds
+```python
+import whr
+import math
 
-	In [2]: print(base.ratings_for_player("Alice"))
-	   ...: print(base.ratings_for_player("Bob"))
-	   ...: print(base.ratings_for_player("Carol"))
-	   ...: print(base.ratings_for_player("Dave"))
-	[[0, 78.50976252870765, 185.55230942797314], [30, 79.47183295485291, 187.12327376311526]]
-	[[10, -15.262552175731392, 180.95086989932025], [60, -18.086030877782818, 183.0820052639819]]
-	[[0, 103.91877749030998, 180.55812567296852], [60, 107.30695193277168, 183.1250043094528]]
-	[[10, -176.67739359273045, 201.15282077913983], [30, -177.3187738768273, 202.03179750776144]]
+# Initialize the rating database with volatility parameter w^2 = 30
+base = whr.Base(config={"w2": 30})
 
-	In [3]: print(base.get_ordered_ratings())
-	[('Carol', [[0, 103.91877749030998, 180.55812567296852], [60, 107.30695193277168, 183.1250043094528]]), ('Alice', [[0, 78.50976252870765, 185.55230942797314], [30, 79.47183295485291, 187.12327376311526]]), ('Bob', [[10, -15.262552175731392, 180.95086989932025], [60, -18.086030877782818, 183.0820052639819]]), ('Dave', [[10, -176.67739359273045, 201.15282077913983], [30, -177.3187738768273, 202.03179750776144]])]
+# Create game records manually:
+# create_game(black_player, white_player, winner, time_step, handicap=0.0)
+# Winner options: "B" (black wins), "W" (white wins), "D" (draw)
+base.create_game("Alice", "Carol", "D", 0)   # Day 0: Draw
+base.create_game("Bob", "Dave", "B", 10)     # Day 10: Bob won
+base.create_game("Dave", "Alice", "W", 30)   # Day 30: Alice won (Dave lost)
+base.create_game("Bob", "Carol", "W", 60)    # Day 60: Carol won (Bob lost)
 
-	In [4]: evaluate = whr.Evaluate(base)
-	   ...: test_games = [
-	   ...:     ["Alice", "Bob", "B", 0],
-	   ...:     ["Bob", "Carol", "W", 20],
-	   ...:     ["Dave", "Bob", "D", 50],
-	   ...:     ["Alice", "Dave", "B", 70],
-	   ...: ]
-	   ...: log_likelihood = evaluate.evaluate_ave_log_likelihood_games(test_games)
+# Run 50 Newton-Raphson iterations to solve for player ratings
+base.iterate(50)
 
-	In [5]: print("Likelihood: ", math.exp(log_likelihood))
-	Likelihood:  0.6274093351974668
+# Retrieve rating history for individual players: returns list of [day, elo, uncertainty]
+print("Alice ratings:", base.ratings_for_player("Alice"))
+# Output: [[0, 78.51, 185.55], [30, 79.47, 187.12]]
 
-To learn more about the detailed usage, please refer to the docstrings of [`whr.Base`](https://github.com/wind23/whole_history_rating/blob/master/whr/base.py) and [`whr.Evaluate`](https://github.com/wind23/whole_history_rating/blob/master/whr/evaluate.py).
-
-## Running Tests
-
-To run the test suite:
-
-```bash
-python tests/test_whr.py
+# Get all player ratings sorted by final strength
+print("Ordered ratings:", base.get_ordered_ratings())
 ```
 
-Or using pytest:
+### 2. Loading Games from CSV
 
-```bash
-pytest tests/test_whr.py -v
+The `load_csv()` method enables importing games from a CSV file or file-like buffer. It is designed to be highly tolerant of formatting errors:
+
+```python
+import whr
+import io
+
+base = whr.Base()
+
+csv_content = """
+black_player, white_player, winner, time_step, handicap
+Alice, Bob, B, 1, 0.0
+Bob, Carol, W, 2, 0.0
+Carol, Alice, D, 3, 5.0
+"""
+
+# Load from a file path or a StringIO buffer
+base.load_csv(io.StringIO(csv_content))
+base.iterate(50)
 ```
+
+#### CSV Format & Column Aliases
+WHR searches the header row case-insensitively for matches using the following aliases:
+
+| Logical Column | Accepted Header Aliases | Default Fallback / Behavior |
+| :--- | :--- | :--- |
+| **Black Player** | `black`, `black_player`, `player_black`, `p1`, `player1`, `black player` | Row is skipped if missing/empty. |
+| **White Player** | `white`, `white_player`, `player_white`, `p2`, `player2`, `white player` | Row is skipped if missing/empty. |
+| **Winner** | `winner`, `result`, `outcome`, `win`, `winner_player`, `victor` | Defaults to a Draw (`D`) with a warning. |
+| **Time Step** | `time_step`, `time`, `step`, `day`, `date`, `round` | Defaults to `0` with a warning. |
+| **Handicap** | `handicap`, `advantage`, `komi` | Defaults to `0.0` (no warning if absent, warning if invalid). |
+
+#### Winner Normalization Rules
+WHR normalizes various winner representations to simplify integration:
+- **Black Win**: `B`, `black`, `b`, `1-0`, `1`, `black win`
+- **White Win**: `W`, `white`, `w`, `0-1`, `0`, `white win`
+- **Draw**: `D`, `draw`, `d`, `1/2-1/2`, `0.5`
+- *Any unrecognized string defaults to a Draw (`D`) with a warning.*
+
+#### Tolerance & Warning Behavior
+If the CSV structure contains minor anomalies, the parser emits a `UserWarning` instead of failing:
+- **Missing Headers**: If headers cannot be detected at all, WHR falls back to treating columns positionally as `[black, white, winner, time_step, handicap]`.
+- **Invalid Numbers**: If `time_step` or `handicap` is non-numeric, it is defaulted to `0` or `0.0` respectively, and a warning is logged.
+- **Float Time Steps**: If the `time_step` contains decimals, it is safely rounded to the nearest integer.
+- **Empty & Comment Lines**: Empty lines and clean space rows are skipped silently.
+
+---
 
 ## API Reference
 
-### whr.Base
+### `whr.Base`
 
-Main class for computing Whole History Ratings.
+Main interface for calculating ratings.
 
-**Constructor:**
-- `whr.Base(w2=300, virtual_games=2)`: Initialize the rating system
-  - `w2`: Variance parameter controlling rating volatility over time
-  - `virtual_games`: Number of virtual draws added to first day for regularization
+- `__init__(config=None, w2=300.0, virtual_games=2)`
+  - `config`: Optional dict containing `w2` and `virtual_games`.
+  - `w2`: Rating variance parameter controlling how fast rating changes over time (default: 300.0).
+  - `virtual_games`: Number of virtual draw games assigned to players on their first day for rating regularization.
+- `create_game(black, white, winner, time_step, handicap=0.0)`: Create and register a single game.
+- `create_games(games)`: Ingest a list of games in the format `[black, white, winner, time_step, handicap]`.
+- `load_csv(filepath_or_buffer)`: Load games from a CSV file path or file-like buffer.
+- `iterate(count)`: Perform a fixed number of Newton-Raphson optimization steps.
+- `iterate_until_converge(verbose=True)`: Iterate until convergence. Returns the total number of iterations.
+- `ratings_for_player(name)`: Get the rating timeline of a player as `[[day, rating, uncertainty], ...]`.
+- `get_ordered_ratings()`: Get sorted ratings for all active players.
+- `log_likelihood()`: Returns the overall log-likelihood score of the current model.
 
-**Methods:**
-- `create_game(black, white, winner, time_step, handicap=0)`: Add a single game
-  - `black`: Name of the black player
-  - `white`: Name of the white player
-  - `winner`: "B" (black wins), "W" (white wins), or "D" (draw)
-  - `time_step`: Integer representing the time period (e.g., day number)
-  - `handicap`: Optional handicap value (default 0)
+### `whr.Evaluate`
 
-- `create_games(games)`: Add multiple games at once
-  - `games`: List of game records, each in format `[black, white, winner, time_step, handicap]`
+Evaluates rating predictability on external test datasets.
 
-- `iterate(count)`: Run Newton's method iterations
-  - `count`: Number of iterations to perform (typically 50-100)
+- `__init__(base)`: Initialize with a trained `whr.Base` rating database.
+- `get_rating(name, time_step, ignore_null_players=True)`: Get the rating of a player on a specific day.
+- `evaluate_ave_log_likelihood_games(games, ignore_null_players=True)`: Compute average log-likelihood across a list of test games.
 
-- `iterate_until_converge(verbose=True)`: Iterate until convergence
-  - Returns the number of iterations performed
+---
 
-- `ratings_for_player(name)`: Get rating history for a player
-  - Returns list of `[time_step, rating, uncertainty]` for each time period
+## Running Tests
 
-- `get_ordered_ratings()`: Get all players' ratings ordered by final rating
+Test files are modularized and cover base functionality, evaluation metrics, and CSV parsing:
 
-- `log_likelihood()`: Get the log-likelihood of the current model
+```bash
+python -m pytest tests/
+```
 
-### whr.Evaluate
+To run with verbose output:
 
-Class for evaluating prediction accuracy on test data.
+```bash
+python -m pytest tests/ -v
+```
 
-**Constructor:**
-- `whr.Evaluate(base)`: Initialize evaluator with a fitted WHR model
-
-**Methods:**
-- `get_rating(name, time_step, ignore_null_players=True)`: Get a player's rating at a specific time
-- `evaluate_ave_log_likelihood_games(games, ignore_null_players=True)`: Compute average log-likelihood on test games
+---
 
 ## References
 

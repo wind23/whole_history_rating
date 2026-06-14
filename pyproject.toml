@@ -4,5 +4,5 @@ build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
 before-all = "uname -a"
-test-command = "python {project}/tests/test_whr.py"
+test-command = "python -m pytest {project}/tests"
 test-skip = "*universal2:arm64"
