@@ -56,8 +56,15 @@ Bob,Dave,B,10,0.0
 """
     f = io.StringIO(csv_data)
     
-    with pytest.warns(UserWarning, match="No CSV header detected. Falling back to default column order"):
+    # We expect multiple warnings because the header row is treated as data and contains invalid values
+    with pytest.warns(UserWarning) as record:
         base.load_csv(f)
+
+    messages = [w.message.args[0] for w in record]
+    assert any("No CSV header detected. Falling back to default column order" in msg for msg in messages)
+    assert any("Invalid winner 'ThirdHeader'" in msg for msg in messages)
+    assert any("Invalid time_step 'FourthHeader'" in msg for msg in messages)
+    assert any("Invalid handicap 'FifthHeader'" in msg for msg in messages)
 
     assert len(base.ratings_for_player("Alice")) == 1
     assert len(base.ratings_for_player("Bob")) == 1
