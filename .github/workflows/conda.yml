@@ -67,5 +67,8 @@ jobs:
       - name: Install
         run: conda install -c ${CONDA}/conda-bld/ whr
 
+      - name: Install test dependencies
+        run: conda install -y pytest
+
       - name: Test
-        run: python tests/test_whr.py
+        run: python -m pytest tests/

@@ -34,8 +34,11 @@ jobs:
       - name: Build and install
         run: pip install --verbose .
 
+      - name: Install test dependencies
+        run: pip install pytest
+
       - name: Test
-        run: python tests/test_whr.py
+        run: python -m pytest tests/
 
   build-mingw64:
     runs-on: windows-latest
@@ -66,5 +69,8 @@ jobs:
         # error: --plat-name must be one of ('win32', 'win-amd64', 'win-arm32', 'win-arm64')
         run: pip install --no-build-isolation .
 
+      - name: Install test dependencies
+        run: pip install pytest
+
       - name: Test
-        run: python tests/test_whr.py
+        run: python -m pytest tests/
