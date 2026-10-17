@@ -51,7 +51,18 @@ jobs:
         run: conda install -n base conda-build conda-verify
 
       - name: Build
-        run: conda build --python ${{ matrix.python-version }} conda.recipe
+        run: |
+          # cmd.exe aborts the whole build script ("The input line is too long." + "The syntax
+          # of the command is incorrect.") once an expanded batch line exceeds 8191 chars. The
+          # vs2022_win-64 activation resets PATH with a "%PATH%" append right after vcvars64, and
+          # on the runner's long stock PATH that expansion overflows, killing conda_build.bat
+          # before pip ever runs. Keep the Windows build PATH tiny: conda + system dirs + MSYS
+          # tools + the VS installer dir (the activation calls vswhere.exe).
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            CONDAU=$(cygpath -u "${CONDA:-C:/Miniconda}")
+            export PATH="$CONDAU:$CONDAU/Scripts:$CONDAU/Library/bin:$CONDAU/condabin:/c/Windows/system32:/c/Windows:/c/Program Files (x86)/Microsoft Visual Studio/Installer:/usr/bin:/bin"
+          fi
+          conda build --python ${{ matrix.python-version }} conda.recipe
         env:
           DISTUTILS_USE_SDK: 1
           MSSdk: 1
