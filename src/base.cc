@@ -1,7 +1,9 @@
 #include "whr.h"
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <iterator>
 
 namespace whr {
 Base::Base(double w2, int virtual_games)

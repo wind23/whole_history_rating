@@ -1,5 +1,8 @@
 #include "whr.h"
 #include <algorithm>
+#include <cmath>
+#include <limits>
+#include <utility>
 
 namespace whr {
 
